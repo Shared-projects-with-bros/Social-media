@@ -35,9 +35,12 @@ function crearElementoPublicacion(publicacion) {
   elemento.className = "publicacion";
   elemento.dataset.id = publicacion.id;
   var yaDioLike = obtenerLikesUsuario().indexOf(publicacion.id) !== -1;
+  const now = new Date();
   elemento.innerHTML =
-    "<h3>" + publicacion.nombre + "</h3>" +
-    "<p>" + publicacion.mensaje + "</p>" +
+    "<h2>" + publicacion.nombre + "</h2>" +
+    "<p> <strong> Mensaje: </strong>" + publicacion.mensaje + "</p>" +
+    "<p> <strong> Fecha: </strong>" + now.getFullYear() + "/" + now.getMonth() + "/" + now.getDay() + "</p>" +
+    "<p> <strong> Hora: </strong>" + now.getHours() + ":" + now.getMinutes() + "</p>" +
     '<button type="button" class="btn btn-sm btn-outline-primary btn-like"' + (yaDioLike ? " disabled" : "") + '>Me gusta</button> ' +
     '<span class="contador-likes">' + publicacion.likes + '</span> ' +
     '<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar">Eliminar</button>';
