@@ -1,0 +1,22 @@
+/* Estilos simples para la mini red social */
+
+body {
+  background-color: #f2f2f2;
+}
+
+.publicacion {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 10px;
+}
+
+.publicacion h3 {
+  margin: 0 0 5px 0;
+  font-size: 18px;
+}
+
+.publicacion p {
+  margin: 0;
+}

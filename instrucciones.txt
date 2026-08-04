@@ -1,0 +1,69 @@
+Objetivo de la actividad
+Desarrollar una mini red social que permita:
+1.	Escribir el nombre de un estudiante.
+2.	Escribir un mensaje.
+3.	Publicar el mensaje.
+4.	Mostrar las publicaciones.
+5.	Reaccionar con un botón de “Me gusta”.
+6.	Guardar las publicaciones y reacciones en LocalStorage.
+El objetivo principal no es crear una aplicación compleja, sino practicar:
+	Historias de usuario.
+	Planificación sencilla.
+	Programación en parejas.
+	Iteraciones cortas.
+	Pruebas continuas.
+	Comunicación.
+	Retroalimentación.
+	Adaptación al cambio.
+
+Producto esperado
+La aplicación debe tener una apariencia sencilla.
+Formulario de publicación
+Debe incluir:
+	Campo para el nombre.
+	Campo para el mensaje.
+	Botón “Publicar”.
+Lista de publicaciones
+Cada publicación debe mostrar:
+	Nombre del estudiante.
+	Mensaje.
+	Cantidad de “Me gusta”.
+	Botón “Me gusta”.
+Las publicaciones deben permanecer después de recargar la página.
+
+Historia 1: Publicar un mensaje
+Como estudiante,
+quiero escribir mi nombre y un mensaje,
+para compartirlo con mis compañeros.
+Criterios de aceptación
+	El nombre es obligatorio.
+	El mensaje es obligatorio.
+	Al presionar “Publicar”, el mensaje aparece en pantalla.
+	Después de publicar, los campos quedan vacíos.
+
+Historia 2: Ver publicaciones
+Como estudiante,
+quiero ver los mensajes publicados,
+para conocer lo que comparten mis compañeros.
+Criterios de aceptación
+	Cada publicación muestra el nombre.
+	Cada publicación muestra el mensaje.
+	Las publicaciones nuevas aparecen primero.
+
+Historia 3: Reaccionar
+Como estudiante,
+quiero reaccionar con “Me gusta”,
+para indicar que una publicación me agradó.
+Criterios de aceptación
+	Cada publicación tiene un botón “Me gusta”.
+	Al presionarlo, el contador aumenta en uno.
+	El contador se mantiene después de recargar la página.
+
+Historia 4: Conservar la información
+Como estudiante,
+quiero que las publicaciones permanezcan guardadas,
+para no perderlas al recargar la página.
+Criterios de aceptación
+	Las publicaciones se guardan en LocalStorage.
+	Al recargar la página, las publicaciones vuelven a mostrarse.
+	La cantidad de “Me gusta” también permanece guardada.
