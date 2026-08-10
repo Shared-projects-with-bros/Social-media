@@ -85,6 +85,11 @@ lista.addEventListener("click", function (evento) {
   var elemento = evento.target.closest(".publicacion");
   var id = Number(elemento.dataset.id);
 
+  var confirmado = confirm("¿Seguro que deseas eliminar esta publicación?");
+  if (!confirmado) {
+    return;
+  }
+
   var publicaciones = obtenerPublicaciones().filter(function (publicacion) {
     return publicacion.id !== id;
   });

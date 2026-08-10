@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python \"C:\\\\Users\\\\quesa\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"SaaS productivity analytics dashboard modern professional trustworthy\" --design-system -p \"Nimbus\")",
+      "Bash(python \"C:\\\\Users\\\\quesa\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"B2B SaaS marketing website hero-centric clean modern minimal trustworthy\" --design-system -p \"Nimbus\" --stack html-tailwind)",
+      "Bash(python \"C:\\\\Users\\\\quesa\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"hero social-proof pricing SaaS\" --domain landing)",
+      "Bash(python \"C:\\\\Users\\\\quesa\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"landing page structure setup\" --stack html-tailwind)",
+      "Bash(python \"C:\\\\Users\\\\quesa\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"navigation checkmark arrow feature icons\" --domain icons)",
+      "Bash(mkdir -p \"/c/Users/quesa/Documents/GitHub/nimbus-landing/assets/css\" \"/c/Users/quesa/Documents/GitHub/nimbus-landing/assets/js\" && ls \"/c/Users/quesa/Documents/GitHub/nimbus-landing\")",
+      "Bash(command -v chromium-cli)",
+      "Bash(npm ls *)",
+      "Bash(npx --no-install playwright --version)",
+      "Bash(node -e \"const {chromium} = require\\('playwright'\\); console.log\\('module ok'\\);\")",
+      "Bash(npx playwright *)",
+      "Bash(mkdir -p shots)",
+      "Bash(node check.mjs)",
+      "Bash(node check2.mjs)",
+      "Bash(node check3.mjs)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\quesa\\Documents\\GitHub\\nimbus-landing\\assets",
+      "C:\\Users\\quesa\\Documents\\GitHub\\nimbus-landing",
+      "C:\\Users\\quesa\\Documents\\GitHub\\nimbus-landing\\assets\\css"
+    ]
+  }
+}
