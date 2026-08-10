@@ -29,18 +29,29 @@ function guardarPublicaciones(publicaciones) {
   localStorage.setItem(CLAVE_STORAGE, JSON.stringify(publicaciones));
 }
 
+//Se completa con un cero a la izquierda si el número es menor a 10
+function conCeroIzquierda(numero) {
+  return String(numero).padStart(2, "0");
+}
+
+//Se arma el texto de fecha y hora a partir del momento en que se creó la publicación
+function formatearFechaHora(marcaDeTiempo) {
+  var fecha = new Date(marcaDeTiempo);
+  var fechaTexto = conCeroIzquierda(fecha.getDate()) + "/" + conCeroIzquierda(fecha.getMonth() + 1) + "/" + fecha.getFullYear();
+  var horaTexto = conCeroIzquierda(fecha.getHours()) + ":" + conCeroIzquierda(fecha.getMinutes());
+  return fechaTexto + " " + horaTexto;
+}
+
 //Se crea los elementos del HTML de una publicación
 function crearElementoPublicacion(publicacion) {
   var elemento = document.createElement("div");
   elemento.className = "publicacion";
   elemento.dataset.id = publicacion.id;
   var yaDioLike = obtenerLikesUsuario().indexOf(publicacion.id) !== -1;
-  const now = new Date();
   elemento.innerHTML =
+    '<span class="fecha-hora">' + formatearFechaHora(publicacion.fecha || publicacion.id) + "</span>" +
     "<h2>" + publicacion.nombre + "</h2>" +
     "<p> <strong> Mensaje: </strong>" + publicacion.mensaje + "</p>" +
-    "<p> <strong> Fecha: </strong>" + now.getFullYear() + "/" + now.getMonth() + "/" + now.getDay() + "</p>" +
-    "<p> <strong> Hora: </strong>" + now.getHours() + ":" + now.getMinutes() + "</p>" +
     '<button type="button" class="btn btn-sm btn-outline-primary btn-like"' + (yaDioLike ? " disabled" : "") + '>Me gusta</button> ' +
     '<span class="contador-likes">' + publicacion.likes + '</span> ' +
     '<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar">Eliminar</button>';
@@ -77,7 +88,8 @@ formulario.addEventListener("submit", function (evento) {
     id: Date.now(),
     nombre: nombre,
     mensaje: mensaje,
-    likes: 0
+    likes: 0,
+    fecha: Date.now()
   };
 
   //Las publicaciones nuevas aparecen primero
@@ -97,6 +109,11 @@ lista.addEventListener("click", function (evento) {
   if (evento.target.classList.contains("btn-eliminar")) {
     var elementoEliminar = evento.target.closest(".publicacion");
     var idEliminar = Number(elementoEliminar.dataset.id);
+
+    var confirmado = confirm("¿Seguro que deseas eliminar esta publicación?");
+    if (!confirmado) {
+      return;
+    }
 
     var publicaciones = obtenerPublicaciones().filter(function (publicacion) {
       return publicacion.id !== idEliminar;
