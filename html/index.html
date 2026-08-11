@@ -66,7 +66,8 @@
 
           <div class="mb-3">
             <label for="mensaje" class="form-label">Mensaje</label>
-            <textarea class="form-control" id="mensaje" rows="3" placeholder="Escribe tu mensaje"></textarea>
+            <textarea class="form-control" id="mensaje" rows="3" maxlength="200" placeholder="Escribe tu mensaje"></textarea>
+            <div class="form-text text-end" id="contadorMensaje">200 caracteres restantes</div>
           </div>
 
           <button type="submit" class="btn btn-primary">Publicar</button>

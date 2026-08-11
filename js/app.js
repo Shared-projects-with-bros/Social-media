@@ -9,10 +9,12 @@ var btnBuscar = document.getElementById("btnBuscar");
 var elementoResumenPublicaciones = document.getElementById("resumenPublicaciones");
 var elementoResumenLikes = document.getElementById("resumenLikes");
 var elementoResumenComentarios = document.getElementById("resumenComentarios");
+var elementoContadorMensaje = document.getElementById("contadorMensaje");
 
 var CLAVE_STORAGE = "publicaciones";
 var CLAVE_LIKES_USUARIO = "likesUsuario";
 var COLORES_AVATAR = ["#1877f2", "#e91e63", "#00a884", "#f5a623", "#8e44ad", "#e67e22", "#16a085", "#c0392b"];
+var LIMITE_MENSAJE = 200;
 
 //Se lee los ids de publicaciones a las que este usuario ya dio like
 function obtenerLikesUsuario() {
@@ -56,6 +58,12 @@ function formatearFechaHora(marcaDeTiempo) {
   var fechaTexto = conCeroIzquierda(fecha.getDate()) + "/" + conCeroIzquierda(fecha.getMonth() + 1) + "/" + fecha.getFullYear();
   var horaTexto = conCeroIzquierda(fecha.getHours()) + ":" + conCeroIzquierda(fecha.getMinutes());
   return fechaTexto + " " + horaTexto;
+}
+
+//Se actualiza el texto que indica cuántos caracteres quedan disponibles
+function actualizarContadorCaracteres(elementoContador, longitudTexto) {
+  var restantes = LIMITE_MENSAJE - longitudTexto;
+  elementoContador.textContent = restantes + " caracteres restantes";
 }
 
 //Se obtiene la inicial del nombre para mostrarla en el avatar
@@ -140,7 +148,16 @@ function entrarModoEdicion(elementoPublicacion, publicacion) {
   var textarea = document.createElement("textarea");
   textarea.className = "form-control textarea-edicion";
   textarea.rows = 3;
+  textarea.maxLength = LIMITE_MENSAJE;
   textarea.value = publicacion.mensaje;
+
+  var contadorEdicion = document.createElement("div");
+  contadorEdicion.className = "form-text text-end contador-edicion";
+  actualizarContadorCaracteres(contadorEdicion, publicacion.mensaje.length);
+
+  textarea.addEventListener("input", function () {
+    actualizarContadorCaracteres(contadorEdicion, textarea.value.length);
+  });
 
   var contenedorBotones = document.createElement("div");
   contenedorBotones.className = "mt-2";
@@ -149,6 +166,7 @@ function entrarModoEdicion(elementoPublicacion, publicacion) {
     '<button type="button" class="btn btn-sm btn-outline-secondary btn-cancelar-edicion">Cancelar</button>';
 
   contenedorMensaje.appendChild(textarea);
+  contenedorMensaje.appendChild(contadorEdicion);
   contenedorMensaje.appendChild(contenedorBotones);
   elementoPublicacion.querySelector(".acciones").style.display = "none";
   textarea.focus();
@@ -243,6 +261,11 @@ function renderizarLista() {
 //Al cargar la página, mostramos las publicaciones guardadas
 renderizarLista();
 
+//Se actualiza el contador de caracteres mientras se escribe el mensaje
+inputMensaje.addEventListener("input", function () {
+  actualizarContadorCaracteres(elementoContadorMensaje, inputMensaje.value.length);
+});
+
 //Se escucha cuando el usuario presiona "Publicar"
 formulario.addEventListener("submit", function (evento) {
   // Evitamos que la página se recargue
@@ -254,6 +277,12 @@ formulario.addEventListener("submit", function (evento) {
   //El nombre y el mensaje son obligatorios
   if (nombre === "" || mensaje === "") {
     alert("El nombre y el mensaje son obligatorios.");
+    return;
+  }
+
+  //El mensaje no puede superar el límite de caracteres
+  if (mensaje.length > LIMITE_MENSAJE) {
+    alert("El mensaje no puede superar los " + LIMITE_MENSAJE + " caracteres.");
     return;
   }
 
@@ -276,6 +305,7 @@ formulario.addEventListener("submit", function (evento) {
   //Después de publicar, los campos quedan vacíos
   inputNombre.value = "";
   inputMensaje.value = "";
+  actualizarContadorCaracteres(elementoContadorMensaje, 0);
 });
 
 //Se escucha los clics en la lista para eliminar, editar o dar "Me gusta"
@@ -332,6 +362,12 @@ lista.addEventListener("click", function (evento) {
     //El mensaje no puede quedar vacío
     if (nuevoMensaje === "") {
       alert("El mensaje no puede quedar vacío.");
+      return;
+    }
+
+    //El mensaje no puede superar el límite de caracteres
+    if (nuevoMensaje.length > LIMITE_MENSAJE) {
+      alert("El mensaje no puede superar los " + LIMITE_MENSAJE + " caracteres.");
       return;
     }
 
