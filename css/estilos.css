@@ -67,7 +67,29 @@ body {
   margin: 4px 0 0 0;
 }
 
+.comentario-acciones {
+  margin-top: 4px;
+}
+
+.comentario-acciones .btn-link {
+  font-size: 12px;
+  text-decoration: none;
+  color: #65676b;
+}
+
+.comentario-acciones .btn-link:hover {
+  text-decoration: underline;
+}
+
+.textarea-edicion-comentario {
+  font-size: 14px;
+}
+
 .sin-comentarios {
   font-size: 13px;
   color: #888;
+}
+
+.btn-reaccion {
+  white-space: nowrap;
 }
