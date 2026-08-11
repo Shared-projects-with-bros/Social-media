@@ -21,7 +21,16 @@ function guardarLikesUsuario(likesUsuario) {
 //Se leen las publicaciones guardadas en LocalStorage
 function obtenerPublicaciones() {
   var datos = localStorage.getItem(CLAVE_STORAGE);
-  return datos ? JSON.parse(datos) : [];
+  var publicaciones = datos ? JSON.parse(datos) : [];
+
+  //Las publicaciones antiguas todavía no tienen la propiedad "comentarios"
+  publicaciones.forEach(function (publicacion) {
+    if (!publicacion.comentarios) {
+      publicacion.comentarios = [];
+    }
+  });
+
+  return publicaciones;
 }
 
 //Se guarda el arreglo de publicaciones en LocalStorage
@@ -42,6 +51,25 @@ function formatearFechaHora(marcaDeTiempo) {
   return fechaTexto + " " + horaTexto;
 }
 
+//Se arma el HTML de un comentario
+function crearHtmlComentario(comentario) {
+  return '<div class="comentario">' +
+    '<div class="comentario-encabezado">' +
+    '<strong class="comentario-autor">' + comentario.autor + "</strong> " +
+    '<span class="comentario-fecha">' + formatearFechaHora(comentario.fecha) + "</span>" +
+    "</div>" +
+    '<p class="comentario-texto">' + comentario.texto + "</p>" +
+    "</div>";
+}
+
+//Se arma el HTML con la lista de comentarios de una publicación
+function crearHtmlListaComentarios(comentarios) {
+  if (comentarios.length === 0) {
+    return '<p class="sin-comentarios">Sin comentarios todavía.</p>';
+  }
+  return comentarios.map(crearHtmlComentario).join("");
+}
+
 //Se crea los elementos del HTML de una publicación
 function crearElementoPublicacion(publicacion) {
   var elemento = document.createElement("div");
@@ -57,6 +85,19 @@ function crearElementoPublicacion(publicacion) {
     '<span class="contador-likes">' + publicacion.likes + '</span> ' +
     '<button type="button" class="btn btn-sm btn-outline-secondary btn-editar">Editar</button> ' +
     '<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar">Eliminar</button>' +
+    "</div>" +
+    '<div class="comentarios-contenedor">' +
+    '<h3 class="h6 mt-3">Comentarios</h3>' +
+    '<div class="lista-comentarios">' + crearHtmlListaComentarios(publicacion.comentarios) + "</div>" +
+    '<form class="form-comentario mt-2">' +
+    '<div class="mb-2">' +
+    '<input type="text" class="form-control form-control-sm input-nombre-comentario" placeholder="Tu nombre">' +
+    "</div>" +
+    '<div class="mb-2">' +
+    '<input type="text" class="form-control form-control-sm input-texto-comentario" placeholder="Escribe un comentario">' +
+    "</div>" +
+    '<button type="submit" class="btn btn-sm btn-outline-primary">Comentar</button>' +
+    "</form>" +
     "</div>";
   return elemento;
 }
@@ -122,7 +163,8 @@ formulario.addEventListener("submit", function (evento) {
     nombre: nombre,
     mensaje: mensaje,
     likes: 0,
-    fecha: Date.now()
+    fecha: Date.now(),
+    comentarios: []
   };
 
   //Las publicaciones nuevas aparecen primero
@@ -230,5 +272,51 @@ lista.addEventListener("click", function (evento) {
       guardarLikesUsuario(likesUsuario);
       evento.target.disabled = true;
     }
+  }
+});
+
+//Se escucha el envío de los formularios de comentarios
+lista.addEventListener("submit", function (evento) {
+  if (!evento.target.classList.contains("form-comentario")) {
+    return;
+  }
+
+  evento.preventDefault();
+
+  var formComentario = evento.target;
+  var elementoPublicacion = formComentario.closest(".publicacion");
+  var idPublicacion = Number(elementoPublicacion.dataset.id);
+
+  var inputNombreComentario = formComentario.querySelector(".input-nombre-comentario");
+  var inputTextoComentario = formComentario.querySelector(".input-texto-comentario");
+
+  var autor = inputNombreComentario.value.trim();
+  var texto = inputTextoComentario.value.trim();
+
+  //El nombre y el comentario son obligatorios
+  if (autor === "" || texto === "") {
+    alert("El nombre y el comentario son obligatorios.");
+    return;
+  }
+
+  var publicaciones = obtenerPublicaciones();
+  var publicacion = publicaciones.find(function (p) {
+    return p.id === idPublicacion;
+  });
+
+  if (publicacion) {
+    var comentario = {
+      autor: autor,
+      texto: texto,
+      fecha: Date.now()
+    };
+
+    publicacion.comentarios.push(comentario);
+    guardarPublicaciones(publicaciones);
+
+    elementoPublicacion.querySelector(".lista-comentarios").innerHTML = crearHtmlListaComentarios(publicacion.comentarios);
+
+    inputNombreComentario.value = "";
+    inputTextoComentario.value = "";
   }
 });
