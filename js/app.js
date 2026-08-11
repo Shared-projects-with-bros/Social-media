@@ -51,11 +51,44 @@ function crearElementoPublicacion(publicacion) {
   elemento.innerHTML =
     '<span class="fecha-hora">' + formatearFechaHora(publicacion.fecha || publicacion.id) + "</span>" +
     "<h2>" + publicacion.nombre + "</h2>" +
-    "<p> <strong> Mensaje: </strong>" + publicacion.mensaje + "</p>" +
+    '<div class="mensaje-contenedor"><p class="texto-mensaje"> <strong> Mensaje: </strong><span class="mensaje-texto">' + publicacion.mensaje + "</span></p></div>" +
+    '<div class="acciones">' +
     '<button type="button" class="btn btn-sm btn-outline-primary btn-like"' + (yaDioLike ? " disabled" : "") + '>Me gusta</button> ' +
     '<span class="contador-likes">' + publicacion.likes + '</span> ' +
-    '<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar">Eliminar</button>';
+    '<button type="button" class="btn btn-sm btn-outline-secondary btn-editar">Editar</button> ' +
+    '<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar">Eliminar</button>' +
+    "</div>";
   return elemento;
+}
+
+//Se reemplaza el mensaje por un textarea para poder editarlo
+function entrarModoEdicion(elementoPublicacion, publicacion) {
+  var contenedorMensaje = elementoPublicacion.querySelector(".mensaje-contenedor");
+  contenedorMensaje.innerHTML = "";
+
+  var textarea = document.createElement("textarea");
+  textarea.className = "form-control textarea-edicion";
+  textarea.rows = 3;
+  textarea.value = publicacion.mensaje;
+
+  var contenedorBotones = document.createElement("div");
+  contenedorBotones.className = "mt-2";
+  contenedorBotones.innerHTML =
+    '<button type="button" class="btn btn-sm btn-primary btn-guardar-edicion">Guardar</button> ' +
+    '<button type="button" class="btn btn-sm btn-outline-secondary btn-cancelar-edicion">Cancelar</button>';
+
+  contenedorMensaje.appendChild(textarea);
+  contenedorMensaje.appendChild(contenedorBotones);
+  elementoPublicacion.querySelector(".acciones").style.display = "none";
+  textarea.focus();
+}
+
+//Se vuelve a mostrar el mensaje (guardado o el original si se cancela)
+function salirModoEdicion(elementoPublicacion, publicacion) {
+  var contenedorMensaje = elementoPublicacion.querySelector(".mensaje-contenedor");
+  contenedorMensaje.innerHTML =
+    '<p class="texto-mensaje"> <strong> Mensaje: </strong><span class="mensaje-texto">' + publicacion.mensaje + "</span></p>";
+  elementoPublicacion.querySelector(".acciones").style.display = "";
 }
 
 //Se muestra en pantalla todas las publicaciones guardadas
@@ -121,6 +154,56 @@ lista.addEventListener("click", function (evento) {
     guardarPublicaciones(publicaciones);
 
     elementoEliminar.remove();
+    return;
+  }
+
+  if (evento.target.classList.contains("btn-editar")) {
+    var elementoEditar = evento.target.closest(".publicacion");
+    var idEditar = Number(elementoEditar.dataset.id);
+    var publicacionEditar = obtenerPublicaciones().find(function (p) {
+      return p.id === idEditar;
+    });
+
+    if (publicacionEditar) {
+      entrarModoEdicion(elementoEditar, publicacionEditar);
+    }
+    return;
+  }
+
+  if (evento.target.classList.contains("btn-cancelar-edicion")) {
+    var elementoCancelar = evento.target.closest(".publicacion");
+    var idCancelar = Number(elementoCancelar.dataset.id);
+    var publicacionCancelar = obtenerPublicaciones().find(function (p) {
+      return p.id === idCancelar;
+    });
+
+    if (publicacionCancelar) {
+      salirModoEdicion(elementoCancelar, publicacionCancelar);
+    }
+    return;
+  }
+
+  if (evento.target.classList.contains("btn-guardar-edicion")) {
+    var elementoGuardar = evento.target.closest(".publicacion");
+    var idGuardar = Number(elementoGuardar.dataset.id);
+    var nuevoMensaje = elementoGuardar.querySelector(".textarea-edicion").value.trim();
+
+    //El mensaje no puede quedar vacío
+    if (nuevoMensaje === "") {
+      alert("El mensaje no puede quedar vacío.");
+      return;
+    }
+
+    var publicacionesGuardar = obtenerPublicaciones();
+    var publicacionGuardar = publicacionesGuardar.find(function (p) {
+      return p.id === idGuardar;
+    });
+
+    if (publicacionGuardar) {
+      publicacionGuardar.mensaje = nuevoMensaje;
+      guardarPublicaciones(publicacionesGuardar);
+      salirModoEdicion(elementoGuardar, publicacionGuardar);
+    }
     return;
   }
 
