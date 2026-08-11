@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FEIBUK</title>
 
   <!-- Bootstrap CSS -->
@@ -11,18 +12,51 @@
   >
 
   <!-- Nuestro CSS -->
-  <link rel="stylesheet" href="../css/estilos.css"> 
+  <link rel="stylesheet" href="../css/estilos.css">
 </head>
 <body>
 
-  <div class="container mt-4">
+  <!-- Barra superior -->
+  <nav class="navbar navbar-dark bg-primary sticky-top shadow-sm mb-4">
+    <div class="container feed-container">
+      <span class="navbar-brand mb-0 h1">📘 FEIBUK</span>
+    </div>
+  </nav>
 
-    <h1 class="text-center mb-4">FEIBUK</h1>
+  <div class="container feed-container pb-5">
+
+    <!-- Resumen de actividad (Historia 10) -->
+    <div class="row text-center g-2 mb-4" id="resumenActividad">
+      <div class="col-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body py-3">
+            <div class="fs-4 fw-bold text-primary" id="resumenPublicaciones">0</div>
+            <div class="text-muted small">Publicaciones</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body py-3">
+            <div class="fs-4 fw-bold text-danger" id="resumenLikes">0</div>
+            <div class="text-muted small">Me gusta</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body py-3">
+            <div class="fs-4 fw-bold text-success" id="resumenComentarios">0</div>
+            <div class="text-muted small">Comentarios</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Formulario para publicar -->
-    <div class="card mb-4">
+    <div class="card mb-4 border-0 shadow-sm">
       <div class="card-body">
-        <h2 class="card-title h5">Nueva publicación</h2>
+        <h2 class="card-title h6 text-muted">¿Qué estás pensando?</h2>
 
         <form id="formPublicar">
           <div class="mb-3">
@@ -40,7 +74,30 @@
       </div>
     </div>
 
-    <!-- Aquí van a aparecer las publicaciones (Historia 2) -->
+    <!-- Buscar y ordenar (Historias 8 y 9) -->
+    <div class="card mb-4 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="row g-2 align-items-end">
+          <div class="col-12 col-md-6">
+            <label for="buscar" class="form-label">Buscar</label>
+            <input type="search" class="form-control" id="buscar" placeholder="Buscar por nombre o mensaje...">
+          </div>
+          <div class="col-8 col-md-4">
+            <label for="ordenar" class="form-label">Ordenar por</label>
+            <select id="ordenar" class="form-select">
+              <option value="recientes" selected>Recientes</option>
+              <option value="antiguas">Antiguas</option>
+              <option value="populares">Más gustadas</option>
+            </select>
+          </div>
+          <div class="col-4 col-md-2 d-grid">
+            <button type="button" id="btnBuscar" class="btn btn-outline-primary">Buscar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aquí van a aparecer las publicaciones -->
     <div id="listaPublicaciones"></div>
 
   </div>

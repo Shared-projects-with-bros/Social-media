@@ -15,7 +15,8 @@
       "Bash(mkdir -p shots)",
       "Bash(node check.mjs)",
       "Bash(node check2.mjs)",
-      "Bash(node check3.mjs)"
+      "Bash(node check3.mjs)",
+      "Bash(node --check \"c:\\\\Users\\\\quesa\\\\Documents\\\\GitHub\\\\Social-media\\\\js\\\\app.js\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\quesa\\Documents\\GitHub\\nimbus-landing\\assets",
