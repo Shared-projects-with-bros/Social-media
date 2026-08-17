@@ -2,27 +2,41 @@
 var formulario = document.getElementById("formPublicar");
 var inputNombre = document.getElementById("nombre");
 var inputMensaje = document.getElementById("mensaje");
+var selectEtiquetaPublicar = document.getElementById("etiquetaPublicar");
+var btnDescartarBorrador = document.getElementById("btnDescartarBorrador");
 var lista = document.getElementById("listaPublicaciones");
 var inputBuscar = document.getElementById("buscar");
 var selectOrden = document.getElementById("ordenar");
+var selectFiltroEtiqueta = document.getElementById("filtroEtiqueta");
+var checkSoloFavoritas = document.getElementById("soloFavoritas");
 var btnBuscar = document.getElementById("btnBuscar");
+var contenedorPaginacion = document.getElementById("controlesPaginacion");
 var elementoResumenPublicaciones = document.getElementById("resumenPublicaciones");
 var elementoResumenReacciones = document.getElementById("resumenReacciones");
 var elementoResumenComentarios = document.getElementById("resumenComentarios");
 var elementoContadorMensaje = document.getElementById("contadorMensaje");
+var btnExportar = document.getElementById("btnExportar");
+var btnImportar = document.getElementById("btnImportar");
+var inputImportar = document.getElementById("inputImportar");
 
 var CLAVE_STORAGE = "publicaciones";
 var CLAVE_LIKES_USUARIO = "likesUsuario";
 var CLAVE_REACCIONES_USUARIO = "reaccionesUsuario";
+var CLAVE_BORRADOR = "borrador";
 var COLORES_AVATAR = ["#1877f2", "#e91e63", "#00a884", "#f5a623", "#8e44ad", "#e67e22", "#16a085", "#c0392b"];
 var LIMITE_MENSAJE = 200;
+var TAMANO_PAGINA = 5;
+var ETIQUETAS = ["General", "Estudio", "Evento", "Ayuda"];
+var COLORES_ETIQUETA = { General: "secondary", Estudio: "primary", Evento: "success", Ayuda: "warning" };
 var TIPOS_REACCION = [
   { clave: "meGusta", emoji: "👍", etiqueta: "Me gusta", color: "primary" },
   { clave: "meEncanta", emoji: "🥰", etiqueta: "Me encanta", color: "danger" },
   { clave: "meDivierte", emoji: "😂", etiqueta: "Me divierte", color: "warning" }
 ];
 
-//Se genera un id único (marca de tiempo + número aleatorio) para publicaciones y comentarios
+var paginaActual = 1;
+
+//Se genera un id único (marca de tiempo + número aleatorio) para publicaciones, comentarios y respuestas
 function generarId() {
   return Date.now() + Math.floor(Math.random() * 1000);
 }
@@ -66,12 +80,22 @@ function obtenerPublicaciones() {
       seMigraronDatos = true;
     }
 
-    //Los comentarios antiguos todavía no tienen un id único
+    //Los comentarios antiguos todavía no tienen un id único ni la propiedad "respuestas"
     publicacion.comentarios.forEach(function (comentario) {
       if (!comentario.id) {
         comentario.id = generarId();
         seMigraronDatos = true;
       }
+      if (!comentario.respuestas) {
+        comentario.respuestas = [];
+        seMigraronDatos = true;
+      }
+      comentario.respuestas.forEach(function (respuesta) {
+        if (!respuesta.id) {
+          respuesta.id = generarId();
+          seMigraronDatos = true;
+        }
+      });
     });
 
     //Las publicaciones antiguas solo tenían un contador simple de "likes"
@@ -91,9 +115,21 @@ function obtenerPublicaciones() {
         }
       });
     }
+
+    //Las publicaciones antiguas no tienen etiqueta: se consideran "General"
+    if (!publicacion.etiqueta || ETIQUETAS.indexOf(publicacion.etiqueta) === -1) {
+      publicacion.etiqueta = "General";
+      seMigraronDatos = true;
+    }
+
+    //Las publicaciones antiguas no tienen estado de favorito: se consideran no favoritas
+    if (typeof publicacion.favorito !== "boolean") {
+      publicacion.favorito = false;
+      seMigraronDatos = true;
+    }
   });
 
-  //Se guarda la migración para que los ids y las reacciones queden estables entre recargas
+  //Se guarda la migración para que los ids, reacciones, etiquetas y favoritos queden estables entre recargas
   if (seMigraronDatos) {
     guardarPublicaciones(publicaciones);
   }
@@ -168,6 +204,20 @@ function crearHtmlReacciones(publicacion, reaccionElegida) {
   }).join(" ");
 }
 
+//Se arma el HTML de una respuesta a un comentario
+function crearHtmlRespuesta(respuesta) {
+  return '<div class="respuesta">' +
+    '<strong class="respuesta-autor">' + respuesta.autor + "</strong> " +
+    '<span class="respuesta-fecha">' + formatearFechaHora(respuesta.fecha) + "</span>" +
+    '<p class="respuesta-texto">' + respuesta.texto + "</p>" +
+    "</div>";
+}
+
+//Se arma el HTML con las respuestas de un comentario
+function crearHtmlListaRespuestas(respuestas) {
+  return respuestas.map(crearHtmlRespuesta).join("");
+}
+
 //Se arma el HTML de la vista (no edición) de un comentario
 function construirVistaComentario(comentario) {
   return '<strong class="comentario-autor">' + comentario.autor + "</strong> " +
@@ -175,14 +225,31 @@ function construirVistaComentario(comentario) {
     '<p class="comentario-texto">' + comentario.texto + "</p>" +
     '<div class="comentario-acciones">' +
     '<button type="button" class="btn btn-sm btn-link p-0 me-3 btn-editar-comentario">Editar</button>' +
-    '<button type="button" class="btn btn-sm btn-link p-0 text-danger btn-eliminar-comentario">Eliminar</button>' +
+    '<button type="button" class="btn btn-sm btn-link p-0 me-3 text-danger btn-eliminar-comentario">Eliminar</button>' +
+    '<button type="button" class="btn btn-sm btn-link p-0 btn-responder-comentario">Responder</button>' +
     "</div>";
 }
 
-//Se arma el HTML de un comentario completo
+//Se arma el HTML de un comentario completo, incluidas sus respuestas
 function crearHtmlComentario(comentario) {
   return '<div class="comentario" data-id="' + comentario.id + '">' +
     '<div class="comentario-vista">' + construirVistaComentario(comentario) + "</div>" +
+    '<div class="respuestas-contenedor">' +
+    '<div class="lista-respuestas">' + crearHtmlListaRespuestas(comentario.respuestas) + "</div>" +
+    '<form class="form-respuesta d-none">' +
+    '<div class="row g-2 mt-1">' +
+    '<div class="col-12 col-sm-4">' +
+    '<input type="text" class="form-control form-control-sm input-nombre-respuesta" placeholder="Tu nombre">' +
+    "</div>" +
+    '<div class="col-12 col-sm-6">' +
+    '<input type="text" class="form-control form-control-sm input-texto-respuesta" placeholder="Escribe una respuesta">' +
+    "</div>" +
+    '<div class="col-12 col-sm-2 d-grid">' +
+    '<button type="submit" class="btn btn-sm btn-outline-primary">Enviar</button>' +
+    "</div>" +
+    "</div>" +
+    "</form>" +
+    "</div>" +
     "</div>";
 }
 
@@ -202,12 +269,17 @@ function crearElementoPublicacion(publicacion) {
   var reaccionElegida = obtenerReaccionesUsuario()[publicacion.id];
   elemento.innerHTML =
     '<div class="card-body">' +
-    '<div class="d-flex align-items-center mb-2">' +
+    '<div class="d-flex align-items-start justify-content-between mb-2">' +
+    '<div class="d-flex align-items-center">' +
     '<div class="avatar-circulo me-2" style="background-color: ' + obtenerColorAvatar(publicacion.nombre) + ';">' + obtenerInicial(publicacion.nombre) + "</div>" +
     "<div>" +
-    '<h2 class="h6 mb-0">' + publicacion.nombre + "</h2>" +
+    '<h2 class="h6 mb-0">' + publicacion.nombre +
+    ' <span class="badge text-bg-' + (COLORES_ETIQUETA[publicacion.etiqueta] || "secondary") + ' etiqueta-badge">' + publicacion.etiqueta + "</span>" +
+    "</h2>" +
     '<span class="text-muted small fecha-hora">' + formatearFechaHora(publicacion.fecha || publicacion.id) + "</span>" +
     "</div>" +
+    "</div>" +
+    '<button type="button" class="btn btn-sm btn-link p-0 btn-favorito ' + (publicacion.favorito ? "text-warning" : "text-muted") + '" title="' + (publicacion.favorito ? "Quitar de favoritos" : "Marcar como favorita") + '">' + (publicacion.favorito ? "★" : "☆") + "</button>" +
     "</div>" +
     '<div class="mensaje-contenedor"><p class="texto-mensaje"><span class="mensaje-texto">' + publicacion.mensaje + "</span></p></div>" +
     '<div class="acciones d-flex flex-wrap align-items-center gap-2 border-top mt-3 pt-2">' +
@@ -308,6 +380,27 @@ function obtenerPublicacionesFiltradas(publicaciones) {
   });
 }
 
+//Se filtran las publicaciones según la etiqueta elegida, sin modificar el arreglo original
+function obtenerPublicacionesPorEtiqueta(publicaciones) {
+  var etiqueta = selectFiltroEtiqueta.value;
+  if (etiqueta === "todas") {
+    return publicaciones;
+  }
+  return publicaciones.filter(function (publicacion) {
+    return publicacion.etiqueta === etiqueta;
+  });
+}
+
+//Se filtran las publicaciones favoritas si el usuario activó ese filtro
+function obtenerPublicacionesFavoritas(publicaciones) {
+  if (!checkSoloFavoritas.checked) {
+    return publicaciones;
+  }
+  return publicaciones.filter(function (publicacion) {
+    return publicacion.favorito;
+  });
+}
+
 //Se ordena una copia de las publicaciones según el criterio elegido, sin alterar el arreglo original
 function ordenarPublicaciones(publicaciones) {
   var copia = publicaciones.slice();
@@ -330,7 +423,7 @@ function ordenarPublicaciones(publicaciones) {
   return copia;
 }
 
-//Se calcula y muestra el resumen de actividad a partir del arreglo de publicaciones
+//Se calcula y muestra el resumen de actividad a partir del arreglo completo de publicaciones
 function actualizarResumen(publicaciones) {
   var totalReacciones = publicaciones.reduce(function (total, publicacion) {
     return total + totalReaccionesPublicacion(publicacion);
@@ -344,38 +437,132 @@ function actualizarResumen(publicaciones) {
   elementoResumenComentarios.textContent = totalComentarios;
 }
 
-//Se muestra en pantalla la lista de publicaciones aplicando la búsqueda y el orden actuales
+//Se dibujan los controles de "Anterior / Página X de Y / Siguiente"
+function renderizarControlesPaginacion(totalPaginas) {
+  contenedorPaginacion.innerHTML =
+    '<button type="button" id="btnPaginaAnterior" class="btn btn-sm btn-outline-secondary"' + (paginaActual === 1 ? " disabled" : "") + '>« Anterior</button>' +
+    '<span class="mx-3 text-muted small">Página ' + paginaActual + " de " + totalPaginas + "</span>" +
+    '<button type="button" id="btnPaginaSiguiente" class="btn btn-sm btn-outline-secondary"' + (paginaActual === totalPaginas ? " disabled" : "") + ">Siguiente »</button>";
+}
+
+//Se muestra en pantalla la página actual de publicaciones, aplicando filtros, búsqueda y orden vigentes
 function renderizarLista() {
   var publicaciones = obtenerPublicaciones();
   actualizarResumen(publicaciones);
 
   lista.innerHTML = "";
+  contenedorPaginacion.innerHTML = "";
 
   if (publicaciones.length === 0) {
     lista.innerHTML = '<p class="text-center text-muted mensaje-sin-resultados">Todavía no hay publicaciones. ¡Sé el primero en publicar algo!</p>';
     return;
   }
 
-  var filtradas = obtenerPublicacionesFiltradas(publicaciones);
-  var ordenadas = ordenarPublicaciones(filtradas);
+  var resultado = obtenerPublicacionesPorEtiqueta(publicaciones);
+  resultado = obtenerPublicacionesFavoritas(resultado);
+  resultado = obtenerPublicacionesFiltradas(resultado);
+  resultado = ordenarPublicaciones(resultado);
 
-  if (ordenadas.length === 0) {
-    lista.innerHTML = '<p class="text-center text-muted mensaje-sin-resultados">No se encontraron publicaciones que coincidan con tu búsqueda.</p>';
+  if (resultado.length === 0) {
+    lista.innerHTML = '<p class="text-center text-muted mensaje-sin-resultados">No se encontraron publicaciones que coincidan con los filtros aplicados.</p>';
     return;
   }
 
-  ordenadas.forEach(function (publicacion) {
+  var totalPaginas = Math.max(1, Math.ceil(resultado.length / TAMANO_PAGINA));
+  if (paginaActual > totalPaginas) {
+    paginaActual = totalPaginas;
+  }
+  if (paginaActual < 1) {
+    paginaActual = 1;
+  }
+
+  var inicio = (paginaActual - 1) * TAMANO_PAGINA;
+  var publicacionesPagina = resultado.slice(inicio, inicio + TAMANO_PAGINA);
+
+  publicacionesPagina.forEach(function (publicacion) {
     lista.appendChild(crearElementoPublicacion(publicacion));
+  });
+
+  renderizarControlesPaginacion(totalPaginas);
+}
+
+//Se vuelve a la primera página cuando cambia un filtro, la búsqueda o el orden
+function reiniciarPaginaYRenderizar() {
+  paginaActual = 1;
+  renderizarLista();
+}
+
+//Se guarda automáticamente lo que el usuario está escribiendo, como borrador
+function guardarBorrador() {
+  var nombre = inputNombre.value;
+  var mensaje = inputMensaje.value;
+
+  if (nombre.trim() === "" && mensaje.trim() === "") {
+    localStorage.removeItem(CLAVE_BORRADOR);
+    return;
+  }
+
+  localStorage.setItem(CLAVE_BORRADOR, JSON.stringify({
+    nombre: nombre,
+    mensaje: mensaje,
+    etiqueta: selectEtiquetaPublicar.value
+  }));
+}
+
+//Se recupera el borrador guardado (si existe) al cargar la página
+function cargarBorrador() {
+  var datos = localStorage.getItem(CLAVE_BORRADOR);
+  if (!datos) {
+    return;
+  }
+
+  var borrador = JSON.parse(datos);
+  inputNombre.value = borrador.nombre || "";
+  inputMensaje.value = borrador.mensaje || "";
+  if (borrador.etiqueta && ETIQUETAS.indexOf(borrador.etiqueta) !== -1) {
+    selectEtiquetaPublicar.value = borrador.etiqueta;
+  }
+  actualizarContadorCaracteres(elementoContadorMensaje, inputMensaje.value.length);
+}
+
+//Se descarta el borrador y se limpia el formulario
+function descartarBorrador() {
+  localStorage.removeItem(CLAVE_BORRADOR);
+  inputNombre.value = "";
+  inputMensaje.value = "";
+  selectEtiquetaPublicar.value = "General";
+  actualizarContadorCaracteres(elementoContadorMensaje, 0);
+}
+
+//Se valida que un archivo importado tenga la estructura mínima de un respaldo de publicaciones
+function validarRespaldo(datos) {
+  if (!Array.isArray(datos)) {
+    return false;
+  }
+  return datos.every(function (publicacion) {
+    return publicacion &&
+      typeof publicacion.id !== "undefined" &&
+      typeof publicacion.nombre === "string" &&
+      typeof publicacion.mensaje === "string";
   });
 }
 
-//Al cargar la página, mostramos las publicaciones guardadas
+//Al cargar la página, recuperamos el borrador (si hay) y mostramos las publicaciones guardadas
+cargarBorrador();
 renderizarLista();
 
-//Se actualiza el contador de caracteres mientras se escribe el mensaje
+//Se actualiza el contador de caracteres y se guarda el borrador mientras se escribe el mensaje
 inputMensaje.addEventListener("input", function () {
   actualizarContadorCaracteres(elementoContadorMensaje, inputMensaje.value.length);
+  guardarBorrador();
 });
+
+//Se guarda el borrador también al escribir el nombre o cambiar el tema
+inputNombre.addEventListener("input", guardarBorrador);
+selectEtiquetaPublicar.addEventListener("change", guardarBorrador);
+
+//Se descarta el borrador al presionar el botón correspondiente
+btnDescartarBorrador.addEventListener("click", descartarBorrador);
 
 //Se escucha cuando el usuario presiona "Publicar"
 formulario.addEventListener("submit", function (evento) {
@@ -401,6 +588,8 @@ formulario.addEventListener("submit", function (evento) {
     id: generarId(),
     nombre: nombre,
     mensaje: mensaje,
+    etiqueta: selectEtiquetaPublicar.value,
+    favorito: false,
     reacciones: { meGusta: 0, meEncanta: 0, meDivierte: 0 },
     fecha: Date.now(),
     comentarios: []
@@ -411,15 +600,19 @@ formulario.addEventListener("submit", function (evento) {
   publicaciones.unshift(publicacion);
   guardarPublicaciones(publicaciones);
 
-  renderizarLista();
+  //Al publicar con éxito, el borrador ya no es necesario
+  localStorage.removeItem(CLAVE_BORRADOR);
+
+  reiniciarPaginaYRenderizar();
 
   //Después de publicar, los campos quedan vacíos
   inputNombre.value = "";
   inputMensaje.value = "";
+  selectEtiquetaPublicar.value = "General";
   actualizarContadorCaracteres(elementoContadorMensaje, 0);
 });
 
-//Se escucha los clics en la lista: publicaciones (eliminar, editar, reaccionar) y comentarios (editar, eliminar)
+//Se escucha los clics en la lista: publicaciones (eliminar, editar, reaccionar, favorito) y comentarios (editar, eliminar, responder)
 lista.addEventListener("click", function (evento) {
   if (evento.target.classList.contains("btn-eliminar")) {
     var elementoEliminar = evento.target.closest(".publicacion");
@@ -490,6 +683,23 @@ lista.addEventListener("click", function (evento) {
     if (publicacionGuardar) {
       publicacionGuardar.mensaje = nuevoMensaje;
       guardarPublicaciones(publicacionesGuardar);
+      renderizarLista();
+    }
+    return;
+  }
+
+  if (evento.target.classList.contains("btn-favorito")) {
+    var elementoFavorito = evento.target.closest(".publicacion");
+    var idFavorito = Number(elementoFavorito.dataset.id);
+
+    var publicacionesFavorito = obtenerPublicaciones();
+    var publicacionFavorito = publicacionesFavorito.find(function (p) {
+      return p.id === idFavorito;
+    });
+
+    if (publicacionFavorito) {
+      publicacionFavorito.favorito = !publicacionFavorito.favorito;
+      guardarPublicaciones(publicacionesFavorito);
       renderizarLista();
     }
     return;
@@ -601,55 +811,172 @@ lista.addEventListener("click", function (evento) {
     }
     return;
   }
+
+  if (evento.target.classList.contains("btn-responder-comentario")) {
+    var elementoComentarioResponder = evento.target.closest(".comentario");
+    var formRespuesta = elementoComentarioResponder.querySelector(".form-respuesta");
+    formRespuesta.classList.toggle("d-none");
+    if (!formRespuesta.classList.contains("d-none")) {
+      formRespuesta.querySelector(".input-nombre-respuesta").focus();
+    }
+    return;
+  }
 });
 
-//Se escucha el envío de los formularios de comentarios
+//Se escucha el envío de los formularios de comentarios y de respuestas a comentarios
 lista.addEventListener("submit", function (evento) {
-  if (!evento.target.classList.contains("form-comentario")) {
+  if (evento.target.classList.contains("form-comentario")) {
+    evento.preventDefault();
+
+    var formComentario = evento.target;
+    var elementoPublicacion = formComentario.closest(".publicacion");
+    var idPublicacion = Number(elementoPublicacion.dataset.id);
+
+    var inputNombreComentario = formComentario.querySelector(".input-nombre-comentario");
+    var inputTextoComentario = formComentario.querySelector(".input-texto-comentario");
+
+    var autor = inputNombreComentario.value.trim();
+    var texto = inputTextoComentario.value.trim();
+
+    //El nombre y el comentario son obligatorios
+    if (autor === "" || texto === "") {
+      alert("El nombre y el comentario son obligatorios.");
+      return;
+    }
+
+    var publicaciones = obtenerPublicaciones();
+    var publicacion = publicaciones.find(function (p) {
+      return p.id === idPublicacion;
+    });
+
+    if (publicacion) {
+      var comentario = {
+        id: generarId(),
+        autor: autor,
+        texto: texto,
+        fecha: Date.now(),
+        respuestas: []
+      };
+
+      publicacion.comentarios.push(comentario);
+      guardarPublicaciones(publicaciones);
+
+      renderizarLista();
+    }
     return;
   }
 
-  evento.preventDefault();
+  if (evento.target.classList.contains("form-respuesta")) {
+    evento.preventDefault();
 
-  var formComentario = evento.target;
-  var elementoPublicacion = formComentario.closest(".publicacion");
-  var idPublicacion = Number(elementoPublicacion.dataset.id);
+    var formRespuesta = evento.target;
+    var elementoComentarioRespuesta = formRespuesta.closest(".comentario");
+    var idPublicacionRespuesta = Number(formRespuesta.closest(".publicacion").dataset.id);
+    var idComentarioRespuesta = Number(elementoComentarioRespuesta.dataset.id);
 
-  var inputNombreComentario = formComentario.querySelector(".input-nombre-comentario");
-  var inputTextoComentario = formComentario.querySelector(".input-texto-comentario");
+    var inputNombreRespuesta = formRespuesta.querySelector(".input-nombre-respuesta");
+    var inputTextoRespuesta = formRespuesta.querySelector(".input-texto-respuesta");
 
-  var autor = inputNombreComentario.value.trim();
-  var texto = inputTextoComentario.value.trim();
+    var autorRespuesta = inputNombreRespuesta.value.trim();
+    var textoRespuesta = inputTextoRespuesta.value.trim();
 
-  //El nombre y el comentario son obligatorios
-  if (autor === "" || texto === "") {
-    alert("El nombre y el comentario son obligatorios.");
-    return;
+    //El nombre y la respuesta son obligatorios
+    if (autorRespuesta === "" || textoRespuesta === "") {
+      alert("El nombre y la respuesta son obligatorios.");
+      return;
+    }
+
+    var publicacionesRespuesta = obtenerPublicaciones();
+    var resultadoRespuesta = localizarComentario(publicacionesRespuesta, idPublicacionRespuesta, idComentarioRespuesta);
+
+    if (resultadoRespuesta.comentario) {
+      resultadoRespuesta.comentario.respuestas.push({
+        id: generarId(),
+        autor: autorRespuesta,
+        texto: textoRespuesta,
+        fecha: Date.now()
+      });
+      guardarPublicaciones(publicacionesRespuesta);
+      renderizarLista();
+    }
   }
+});
 
-  var publicaciones = obtenerPublicaciones();
-  var publicacion = publicaciones.find(function (p) {
-    return p.id === idPublicacion;
-  });
-
-  if (publicacion) {
-    var comentario = {
-      id: generarId(),
-      autor: autor,
-      texto: texto,
-      fecha: Date.now()
-    };
-
-    publicacion.comentarios.push(comentario);
-    guardarPublicaciones(publicaciones);
-
+//Se escuchan los clics en los controles de paginación
+contenedorPaginacion.addEventListener("click", function (evento) {
+  if (evento.target.id === "btnPaginaAnterior" && paginaActual > 1) {
+    paginaActual--;
+    renderizarLista();
+  } else if (evento.target.id === "btnPaginaSiguiente") {
+    paginaActual++;
     renderizarLista();
   }
 });
 
 //Se escucha la búsqueda: se filtra mientras se escribe y también al presionar "Buscar"
-inputBuscar.addEventListener("input", renderizarLista);
-btnBuscar.addEventListener("click", renderizarLista);
+inputBuscar.addEventListener("input", reiniciarPaginaYRenderizar);
+btnBuscar.addEventListener("click", reiniciarPaginaYRenderizar);
 
-//Se escucha el cambio de criterio de orden
-selectOrden.addEventListener("change", renderizarLista);
+//Se escucha el cambio de criterio de orden, de etiqueta y del filtro de favoritas
+selectOrden.addEventListener("change", reiniciarPaginaYRenderizar);
+selectFiltroEtiqueta.addEventListener("change", reiniciarPaginaYRenderizar);
+checkSoloFavoritas.addEventListener("change", reiniciarPaginaYRenderizar);
+
+//Se exporta un respaldo en JSON con todas las publicaciones y sus datos relacionados
+btnExportar.addEventListener("click", function () {
+  var publicaciones = obtenerPublicaciones();
+  var blob = new Blob([JSON.stringify(publicaciones, null, 2)], { type: "application/json" });
+  var url = URL.createObjectURL(blob);
+
+  var enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = "respaldo-feibuk.json";
+  document.body.appendChild(enlace);
+  enlace.click();
+  document.body.removeChild(enlace);
+  URL.revokeObjectURL(url);
+});
+
+//Se abre el selector de archivos al presionar "Importar"
+btnImportar.addEventListener("click", function () {
+  inputImportar.click();
+});
+
+//Se procesa el archivo elegido para restaurar un respaldo
+inputImportar.addEventListener("change", function () {
+  var archivo = inputImportar.files[0];
+  if (!archivo) {
+    return;
+  }
+
+  var lector = new FileReader();
+  lector.onload = function () {
+    var datosImportados;
+
+    try {
+      datosImportados = JSON.parse(lector.result);
+    } catch (error) {
+      alert("El archivo no es un JSON válido.");
+      inputImportar.value = "";
+      return;
+    }
+
+    if (!validarRespaldo(datosImportados)) {
+      alert("El archivo no tiene la estructura esperada de un respaldo de FEIBUK.");
+      inputImportar.value = "";
+      return;
+    }
+
+    var confirmado = confirm("Esto reemplazará todas tus publicaciones actuales por las del respaldo. ¿Deseas continuar?");
+    if (!confirmado) {
+      inputImportar.value = "";
+      return;
+    }
+
+    guardarPublicaciones(datosImportados);
+    paginaActual = 1;
+    renderizarLista();
+    inputImportar.value = "";
+  };
+  lector.readAsText(archivo);
+});

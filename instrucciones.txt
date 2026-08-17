@@ -64,6 +64,6 @@ Como estudiante,
 quiero que las publicaciones permanezcan guardadas,
 para no perderlas al recargar la página.
 Criterios de aceptación
-	Las publicaciones se guardan en LocalStorage.
-	Al recargar la página, las publicaciones vuelven a mostrarse.
-	La cantidad de “Me gusta” también permanece guardada.
+Las publicaciones se guardan en LocalStorage.
+Al recargar la página, las publicaciones vuelven a mostrarse.
+La cantidad de “Me gusta” también permanece guardada.

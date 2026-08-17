@@ -93,3 +93,50 @@ body {
 .btn-reaccion {
   white-space: nowrap;
 }
+
+.etiqueta-badge {
+  font-size: 11px;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.btn-favorito {
+  font-size: 20px;
+  line-height: 1;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.respuestas-contenedor {
+  margin-left: 24px;
+  margin-top: 6px;
+}
+
+.respuesta {
+  background-color: #e9ebee;
+  border-radius: 10px;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+}
+
+.respuesta-autor {
+  font-size: 13px;
+}
+
+.respuesta-fecha {
+  font-size: 11px;
+  color: #888;
+}
+
+.respuesta-texto {
+  margin: 2px 0 0 0;
+  font-size: 13px;
+}
+
+.form-respuesta {
+  margin-left: 24px;
+}
+
+#controlesPaginacion button:disabled {
+  opacity: 0.5;
+}
