@@ -18,6 +18,7 @@ var elementoContadorMensaje = document.getElementById("contadorMensaje");
 var btnExportar = document.getElementById("btnExportar");
 var btnImportar = document.getElementById("btnImportar");
 var inputImportar = document.getElementById("inputImportar");
+var listaModeracion = document.getElementById("listaModeracion");
 
 var CLAVE_STORAGE = "publicaciones";
 var CLAVE_LIKES_USUARIO = "likesUsuario";
@@ -28,6 +29,7 @@ var LIMITE_MENSAJE = 200;
 var TAMANO_PAGINA = 5;
 var ETIQUETAS = ["General", "Estudio", "Evento", "Ayuda"];
 var COLORES_ETIQUETA = { General: "secondary", Estudio: "primary", Evento: "success", Ayuda: "warning" };
+var MOTIVOS_REPORTE = ["Spam", "Ofensivo", "Otro"];
 var TIPOS_REACCION = [
   { clave: "meGusta", emoji: "👍", etiqueta: "Me gusta", color: "primary" },
   { clave: "meEncanta", emoji: "🥰", etiqueta: "Me encanta", color: "danger" },
@@ -127,9 +129,15 @@ function obtenerPublicaciones() {
       publicacion.favorito = false;
       seMigraronDatos = true;
     }
+
+    //Las publicaciones antiguas no tienen estado de reporte: se consideran no reportadas
+    if (typeof publicacion.reporte === "undefined") {
+      publicacion.reporte = null;
+      seMigraronDatos = true;
+    }
   });
 
-  //Se guarda la migración para que los ids, reacciones, etiquetas y favoritos queden estables entre recargas
+  //Se guarda la migración para que los ids, reacciones, etiquetas, favoritos y reportes queden estables entre recargas
   if (seMigraronDatos) {
     guardarPublicaciones(publicaciones);
   }
@@ -261,6 +269,35 @@ function crearHtmlListaComentarios(comentarios) {
   return comentarios.map(crearHtmlComentario).join("");
 }
 
+//Se arma el HTML de una publicación reportada dentro de la vista de Moderación
+function crearHtmlReporteModeracion(publicacion) {
+  return '<div class="reporte-moderacion border rounded p-2 mb-2" data-id="' + publicacion.id + '">' +
+    '<div><strong>' + publicacion.nombre + "</strong> " +
+    '<span class="badge text-bg-dark">' + publicacion.reporte.motivo + "</span>" +
+    '<p class="mb-1 small text-muted">' + publicacion.mensaje + "</p>" +
+    '<span class="text-muted small">Reportada el ' + formatearFechaHora(publicacion.reporte.fecha) + "</span>" +
+    "</div>" +
+    '<div class="mt-2">' +
+    '<button type="button" class="btn btn-sm btn-outline-secondary btn-descartar-reporte">Descartar reporte</button> ' +
+    '<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-desde-moderacion">Eliminar publicación</button>' +
+    "</div>" +
+    "</div>";
+}
+
+//Se muestra en el modal de Moderación la lista de publicaciones reportadas, a partir del arreglo completo
+function renderizarModeracion(publicaciones) {
+  var reportadas = publicaciones.filter(function (publicacion) {
+    return publicacion.reporte;
+  });
+
+  if (reportadas.length === 0) {
+    listaModeracion.innerHTML = '<p class="text-muted mb-0">No hay publicaciones reportadas.</p>';
+    return;
+  }
+
+  listaModeracion.innerHTML = reportadas.map(crearHtmlReporteModeracion).join("");
+}
+
 //Se crea los elementos del HTML de una publicación
 function crearElementoPublicacion(publicacion) {
   var elemento = document.createElement("div");
@@ -275,6 +312,7 @@ function crearElementoPublicacion(publicacion) {
     "<div>" +
     '<h2 class="h6 mb-0">' + publicacion.nombre +
     ' <span class="badge text-bg-' + (COLORES_ETIQUETA[publicacion.etiqueta] || "secondary") + ' etiqueta-badge">' + publicacion.etiqueta + "</span>" +
+    (publicacion.reporte ? ' <span class="badge text-bg-dark reportada-badge">🚩 Reportada</span>' : "") +
     "</h2>" +
     '<span class="text-muted small fecha-hora">' + formatearFechaHora(publicacion.fecha || publicacion.id) + "</span>" +
     "</div>" +
@@ -286,6 +324,24 @@ function crearElementoPublicacion(publicacion) {
     crearHtmlReacciones(publicacion, reaccionElegida) +
     ' <button type="button" class="btn btn-sm btn-outline-secondary btn-editar">Editar</button>' +
     ' <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar">Eliminar</button>' +
+    (publicacion.reporte ?
+      ' <span class="btn btn-sm btn-outline-dark disabled">🚩 Reportada</span>' :
+      ' <button type="button" class="btn btn-sm btn-outline-dark btn-reportar">🚩 Reportar</button>') +
+    "</div>" +
+    '<div class="reporte-contenedor">' +
+    '<form class="form-reporte d-none row g-2 mt-2">' +
+    '<div class="col-8 col-sm-6">' +
+    '<select class="form-select form-select-sm select-motivo-reporte">' +
+    MOTIVOS_REPORTE.map(function (motivo) { return '<option value="' + motivo + '">' + motivo + "</option>"; }).join("") +
+    "</select>" +
+    "</div>" +
+    '<div class="col-4 col-sm-3 d-grid">' +
+    '<button type="submit" class="btn btn-sm btn-dark">Enviar</button>' +
+    "</div>" +
+    '<div class="col-12 col-sm-3 d-grid">' +
+    '<button type="button" class="btn btn-sm btn-outline-secondary btn-cancelar-reporte">Cancelar</button>' +
+    "</div>" +
+    "</form>" +
     "</div>" +
     '<div class="comentarios-contenedor">' +
     '<h3 class="h6 mt-3">Comentarios</h3>' +
@@ -449,6 +505,7 @@ function renderizarControlesPaginacion(totalPaginas) {
 function renderizarLista() {
   var publicaciones = obtenerPublicaciones();
   actualizarResumen(publicaciones);
+  renderizarModeracion(publicaciones);
 
   lista.innerHTML = "";
   contenedorPaginacion.innerHTML = "";
@@ -821,6 +878,17 @@ lista.addEventListener("click", function (evento) {
     }
     return;
   }
+
+  if (evento.target.classList.contains("btn-reportar")) {
+    var elementoReportar = evento.target.closest(".publicacion");
+    elementoReportar.querySelector(".form-reporte").classList.toggle("d-none");
+    return;
+  }
+
+  if (evento.target.classList.contains("btn-cancelar-reporte")) {
+    evento.target.closest(".form-reporte").classList.add("d-none");
+    return;
+  }
 });
 
 //Se escucha el envío de los formularios de comentarios y de respuestas a comentarios
@@ -899,6 +967,27 @@ lista.addEventListener("submit", function (evento) {
       guardarPublicaciones(publicacionesRespuesta);
       renderizarLista();
     }
+    return;
+  }
+
+  if (evento.target.classList.contains("form-reporte")) {
+    evento.preventDefault();
+
+    var formReporte = evento.target;
+    var idPublicacionReporte = Number(formReporte.closest(".publicacion").dataset.id);
+    var motivoReporte = formReporte.querySelector(".select-motivo-reporte").value;
+
+    var publicacionesReporte = obtenerPublicaciones();
+    var publicacionReporte = publicacionesReporte.find(function (p) {
+      return p.id === idPublicacionReporte;
+    });
+
+    //Un mismo reporte no se registra dos veces: si ya está reportada, no se vuelve a guardar
+    if (publicacionReporte && !publicacionReporte.reporte) {
+      publicacionReporte.reporte = { motivo: motivoReporte, fecha: Date.now() };
+      guardarPublicaciones(publicacionesReporte);
+      renderizarLista();
+    }
   }
 });
 
@@ -909,6 +998,42 @@ contenedorPaginacion.addEventListener("click", function (evento) {
     renderizarLista();
   } else if (evento.target.id === "btnPaginaSiguiente") {
     paginaActual++;
+    renderizarLista();
+  }
+});
+
+//Se escuchan los clics en la vista de Moderación: descartar un reporte o eliminar la publicación reportada
+listaModeracion.addEventListener("click", function (evento) {
+  var elementoReporte = evento.target.closest(".reporte-moderacion");
+  if (!elementoReporte) {
+    return;
+  }
+  var idPublicacionModeracion = Number(elementoReporte.dataset.id);
+
+  if (evento.target.classList.contains("btn-descartar-reporte")) {
+    var publicacionesDescartar = obtenerPublicaciones();
+    var publicacionDescartar = publicacionesDescartar.find(function (p) {
+      return p.id === idPublicacionModeracion;
+    });
+
+    if (publicacionDescartar) {
+      publicacionDescartar.reporte = null;
+      guardarPublicaciones(publicacionesDescartar);
+      renderizarLista();
+    }
+    return;
+  }
+
+  if (evento.target.classList.contains("btn-eliminar-desde-moderacion")) {
+    var confirmadoModeracion = confirm("¿Seguro que deseas eliminar esta publicación reportada?");
+    if (!confirmadoModeracion) {
+      return;
+    }
+
+    var publicacionesTrasEliminar = obtenerPublicaciones().filter(function (p) {
+      return p.id !== idPublicacionModeracion;
+    });
+    guardarPublicaciones(publicacionesTrasEliminar);
     renderizarLista();
   }
 });

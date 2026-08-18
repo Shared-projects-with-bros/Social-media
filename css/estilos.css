@@ -140,3 +140,13 @@ body {
 #controlesPaginacion button:disabled {
   opacity: 0.5;
 }
+
+.reportada-badge {
+  font-size: 11px;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.reporte-moderacion:last-child {
+  margin-bottom: 0 !important;
+}
